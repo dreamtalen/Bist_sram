@@ -1,32 +1,49 @@
-//`timescale 1ns/1ns
+`timescale 1ns/1ns
 module bist_tb;
   
-reg tb_clk;
-reg tb_rst_n;
-wire tb_bist_fail;
-wire tb_bist_done;
+reg clk_tb;
+reg rst_n_tb;
+wire bist_fail_tb;
+wire bist_done_tb;
+
+bist BIST(.clk(clk_tb),
+       .rst_n(rst_n_tb),
+       .bist_fail(bist_fail_tb),
+       .bist_done(bist_done_tb));
+
+wire [31:0] data_output_tb = BIST.data_output;
+wire [31:0] pattern_0_tb = BIST.pattern_0;
+wire [31:0] pattern_1_tb = BIST.pattern_1;
 
 initial
 begin
-	tb_clk = 0;
+  clk_tb = 0;
 end
   
 always
 begin
-	#50 tb_clk = ~tb_clk;
+  #50 clk_tb = ~clk_tb;
 end
   
 initial
 begin
-	tb_rst_n = 1;
-    #100 tb_rst_n = 0;
-    #50 tb_rst_n = 1;
+  rst_n_tb = 0;
+  #100 rst_n_tb = 1;
+  $display("Start memory built in self test at time %d", $time);
 end
-   
-bist BIST(.clk(tb_clk),
-          .rst_n(tb_rst_n),
-          .bist_fail(tb_bist_fail),
-          .bist_done(tb_bist_done),
+
+always @(pattern_0_tb or pattern_1_tb or rst_n_tb) begin
+  if (rst_n_tb) begin
+  $display("Begin to test pattern %b and %b at time %d", pattern_0_tb, pattern_1_tb, $time);  
+  end
+end
+
+always @( posedge clk_tb )
+begin
+if( bist_done_tb == 1 && bist_fail_tb == 0 )begin
+    $display("Finish memory built in self test at time: ",$time);
+    $stop; 
+ end
+end
 
 endmodule
-  
